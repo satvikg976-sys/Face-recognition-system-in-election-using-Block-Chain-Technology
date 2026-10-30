@@ -1,5 +1,6 @@
 import React from 'react';
 import { getSessionStatus } from '../utils/db';
+import WalletModeSelector from '../components/WalletModeSelector';
 
 export default function DashboardPage({
   officer,
@@ -46,20 +47,8 @@ export default function DashboardPage({
               </span>
             </div>
 
-            {/* Wallet Status Badge */}
-            <a
-              href="https://testnet.mstscan.com/address/0x599D7ea9176441708d8973031f04D05674927668"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900 hover:from-blue-100 hover:to-indigo-100 transition-all shadow-xs"
-              title="View on MSTScan Explorer"
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-mono font-bold text-slate-700">0x599D...7668</span>
-              <span className="font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded text-[11px]">
-                60.00 tMSTC
-              </span>
-            </a>
+            {/* 3 Wallet Options: Testnet, Mainnet, Without Wallet Execution */}
+            <WalletModeSelector />
 
             {/* Top Right Corner Button: voter list for election */}
             <button

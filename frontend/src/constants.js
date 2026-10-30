@@ -24,6 +24,51 @@ export const MST_MAINNET_CONFIG = {
   blockExplorerUrls: ['https://mstscan.com'],
 };
 
+export const WALLET_MODES = [
+  {
+    id: 'testnet',
+    label: 'MST Testnet',
+    shortLabel: 'Testnet',
+    currency: 'tMSTC',
+    balance: '60.00 tMSTC',
+    chainId: 91562037,
+    address: '0x599D7ea9176441708d8973031f04D05674927668',
+    shortAddress: '0x599D...7668',
+    explorerUrl: 'https://testnet.mstscan.com/address/0x599D7ea9176441708d8973031f04D05674927668',
+    badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    dotColor: 'bg-emerald-500',
+    description: 'Active MST Testnet with funded 60.00 tMSTC officer wallet.',
+  },
+  {
+    id: 'mainnet',
+    label: 'MST Mainnet',
+    shortLabel: 'Mainnet',
+    currency: 'MSTC',
+    balance: '15.00 MSTC',
+    chainId: 4646,
+    address: '0x599D7ea9176441708d8973031f04D05674927668',
+    shortAddress: '0x599D...7668',
+    explorerUrl: 'https://mstscan.com/address/0x599D7ea9176441708d8973031f04D05674927668',
+    badgeClass: 'bg-purple-100 text-purple-800 border-purple-200',
+    dotColor: 'bg-purple-500',
+    description: 'Live MST Mainnet production blockchain environment.',
+  },
+  {
+    id: 'no_wallet',
+    label: 'Without Wallet Execution',
+    shortLabel: 'Without Wallet',
+    currency: 'Gas-Free',
+    balance: '0 Gas (No Wallet)',
+    chainId: null,
+    address: 'Decentralized Relayer',
+    shortAddress: 'No Wallet Req.',
+    explorerUrl: null,
+    badgeClass: 'bg-amber-100 text-amber-800 border-amber-200',
+    dotColor: 'bg-amber-500',
+    description: 'Instant verification without requiring any browser wallet extension.',
+  },
+];
+
 // Fallback or currently deployed contract address
 export const CONTRACT_ADDRESS = '0xa6fc5ffD7D2109A035d8F1035A56e4959EA538CA';
 

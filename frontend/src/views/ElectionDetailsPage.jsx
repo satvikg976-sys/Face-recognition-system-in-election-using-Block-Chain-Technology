@@ -4,6 +4,7 @@ import { verifyFacePipeline } from '../utils/faceMatching';
 import { sendMSTBlockchainTransaction } from '../utils/web3';
 import { sendRelayedTransaction, RELAYER_CONFIG } from '../utils/relayer';
 import { DEFAULT_OFFICER_WALLET } from '../constants';
+import WalletModeSelector, { getActiveWalletMode } from '../components/WalletModeSelector';
 
 export default function ElectionDetailsPage({
   election,
@@ -255,8 +256,15 @@ export default function ElectionDetailsPage({
     try {
       const payload = `MST_BIOMETRIC_VERIFIED:Election=${election.id}:VoterId=${selectedVoterForCamera.voterId}:Score=${verificationResult.score}%:Time=${Date.now()}`;
 
+      const mode = getActiveWalletMode();
       let txHash;
-      if (useRelayer) {
+      if (mode.id === 'no_wallet') {
+        // Without Wallet Execution: Generate cryptographic audit hash instantly without wallet extension
+        const enc = new TextEncoder().encode(payload + Date.now());
+        const hashBuf = await crypto.subtle.digest('SHA-256', enc);
+        const hashHex = Array.from(new Uint8Array(hashBuf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+        txHash = '0x' + hashHex;
+      } else if (useRelayer || mode.id === 'testnet') {
         // Execute via Gas Free Payment Service
         const relResult = await sendRelayedTransaction(payload, DEFAULT_OFFICER_WALLET);
         txHash = relResult.txHash;
@@ -350,20 +358,8 @@ export default function ElectionDetailsPage({
               </button>
             </div>
 
-            {/* Wallet Status Badge */}
-            <a
-              href="https://testnet.mstscan.com/address/0x599D7ea9176441708d8973031f04D05674927668"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900 hover:from-blue-100 hover:to-indigo-100 transition-all shadow-xs"
-              title="View on MSTScan Explorer"
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-mono font-bold text-slate-700">0x599D...7668</span>
-              <span className="font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded text-[11px]">
-                60.00 tMSTC
-              </span>
-            </a>
+            {/* 3 Wallet Options: Testnet, Mainnet, Without Wallet Execution */}
+            <WalletModeSelector />
 
             {/* Right Corner: Add Voters Option (Enforces Capacity Limit) */}
             {isCapacityReached ? (

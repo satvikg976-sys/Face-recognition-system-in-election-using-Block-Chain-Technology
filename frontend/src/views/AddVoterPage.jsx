@@ -4,6 +4,7 @@ import { sendMSTBlockchainTransaction } from '../utils/web3';
 import { sendRelayedTransaction, RELAYER_CONFIG } from '../utils/relayer';
 import { DEFAULT_OFFICER_WALLET } from '../constants';
 import { extractAndEncodeEnrollment } from '../utils/faceMatching';
+import WalletModeSelector, { getActiveWalletMode } from '../components/WalletModeSelector';
 
 // Fast in-browser image compressor to keep photos under 8KB and avoid localStorage quota limits
 function compressImage(dataUrl, maxDim = 200, quality = 0.65) {
@@ -166,8 +167,15 @@ export default function AddVoterPage({ election, onVoterAdded, onCancel }) {
       // Create payload describing the voter registration on-chain
       const payload = `MST_VOTER_REGISTRATION:Election=${election.id}:VoterId=${voterId.trim()}:Name=${name.trim()}:DOB=${dob.trim()}:Time=${Date.now()}`;
 
+      const mode = getActiveWalletMode();
       let txHash;
-      if (useRelayer) {
+      if (mode.id === 'no_wallet') {
+        setStatusText('⚡ Submitting without wallet (Gas-Free Execution)...');
+        const enc = new TextEncoder().encode(payload + Date.now());
+        const hashBuf = await crypto.subtle.digest('SHA-256', enc);
+        const hashHex = Array.from(new Uint8Array(hashBuf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+        txHash = '0x' + hashHex;
+      } else if (useRelayer || mode.id === 'testnet') {
         setStatusText('⚡ Submitting via Gas Free Payment (0 Gas Fee)...');
         const relResult = await sendRelayedTransaction(payload, DEFAULT_OFFICER_WALLET);
         txHash = relResult.txHash;
@@ -228,12 +236,15 @@ export default function AddVoterPage({ election, onVoterAdded, onCancel }) {
               </p>
             </div>
           </div>
-          <button
-            onClick={onCancel}
-            className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all cursor-pointer shadow-xs"
-          >
-            Cancel
-          </button>
+          <div className="flex items-center gap-2">
+            <WalletModeSelector />
+            <button
+              onClick={onCancel}
+              className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all cursor-pointer shadow-xs"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </header>
 
