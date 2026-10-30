@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { MST_TESTNET_CONFIG, CONTRACT_ADDRESS } from '../constants';
+import { MST_TESTNET_CONFIG, MST_MAINNET_CONFIG, CONTRACT_ADDRESS } from '../constants';
 import ElectionAuditArtifact from '../contracts/ElectionAuditABI.json';
 
 const CONTRACT_ABI = ElectionAuditArtifact.abi || ElectionAuditArtifact;
@@ -101,11 +101,6 @@ export async function connectWallet() {
   const signer = await browserProvider.getSigner();
   const network = await browserProvider.getNetwork();
 
-  // Switch to MST Testnet if not on it
-  if (Number(network.chainId) !== MST_TESTNET_CONFIG.chainIdDecimal) {
-    await switchToMSTTestnet(ethereum);
-  }
-
   const balance = await browserProvider.getBalance(accounts[0]);
 
   return {
@@ -118,16 +113,68 @@ export async function connectWallet() {
 }
 
 /**
- * Send an on-chain transaction through BridgeKey Wallet
- * Prompts user confirmation dialog every single time.
+ * Automatically prompt to add or switch to a target MST Network ('testnet' | 'mainnet')
  */
-export async function sendMSTBlockchainTransaction(payloadString, targetAddress = '0x599D7ea9176441708d8973031f04D05674927668') {
+export async function switchToNetwork(networkId = 'testnet', ethereum) {
+  const eth = ethereum || getEthereumProvider();
+  if (!eth) return;
+
+  const config = networkId === 'mainnet' ? MST_MAINNET_CONFIG : MST_TESTNET_CONFIG;
+
+  try {
+    await eth.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: config.chainId }],
+    });
+  } catch (switchError) {
+    if (
+      switchError.code === 4902 ||
+      switchError.data?.originalError?.code === 4902 ||
+      switchError.message?.includes('Unrecognized') ||
+      switchError.message?.includes('not found')
+    ) {
+      await eth.request({
+        method: 'wallet_addEthereumChain',
+        params: [
+          {
+            chainId: config.chainId,
+            chainName: config.chainName,
+            nativeCurrency: config.nativeCurrency,
+            rpcUrls: config.rpcUrls,
+            blockExplorerUrls: config.blockExplorerUrls,
+          },
+        ],
+      });
+    } else {
+      console.warn('Network switch warning:', switchError);
+      throw switchError;
+    }
+  }
+}
+
+export async function switchToMSTTestnet(ethereum) {
+  return switchToNetwork('testnet', ethereum);
+}
+
+export async function switchToMSTMainnet(ethereum) {
+  return switchToNetwork('mainnet', ethereum);
+}
+
+/**
+ * Send an on-chain transaction through BridgeKey Wallet
+ * Automatically targets MST Mainnet or MST Testnet based on active mode
+ */
+export async function sendMSTBlockchainTransaction(
+  payloadString,
+  targetAddress = '0x599D7ea9176441708d8973031f04D05674927668',
+  desiredMode = null
+) {
   const ethereum = getEthereumProvider();
   if (!ethereum) {
     throw new Error('BridgeKey or Web3 wallet not detected. Please ensure BridgeKey Wallet extension is enabled.');
   }
 
-  // Check if account is already authorized to avoid -32603 repeated requestAccounts error
+  // Check if account is already authorized to avoid repeated requestAccounts error
   let accounts = [];
   try {
     accounts = await ethereum.request({ method: 'eth_accounts' });
@@ -146,13 +193,31 @@ export async function sendMSTBlockchainTransaction(payloadString, targetAddress 
     }
   }
 
-  const browserProvider = new ethers.BrowserProvider(ethereum);
-  const signer = await browserProvider.getSigner();
-  const network = await browserProvider.getNetwork();
+  let browserProvider = new ethers.BrowserProvider(ethereum);
+  let network = await browserProvider.getNetwork();
+  const currentChainId = Number(network.chainId);
 
-  if (Number(network.chainId) !== MST_TESTNET_CONFIG.chainIdDecimal) {
-    await switchToMSTTestnet(ethereum);
+  // Determine target network based on desiredMode or active storage mode
+  const mode =
+    desiredMode ||
+    (typeof window !== 'undefined' ? localStorage.getItem('mst_wallet_mode') : null) ||
+    'testnet';
+
+  // If user wants Mainnet, ensure we are on Mainnet
+  if (mode === 'mainnet') {
+    if (currentChainId !== MST_MAINNET_CONFIG.chainIdDecimal) {
+      await switchToNetwork('mainnet', ethereum);
+      browserProvider = new ethers.BrowserProvider(ethereum);
+    }
+  } else if (mode === 'testnet') {
+    // If user wants Testnet, ensure we are on Testnet
+    if (currentChainId !== MST_TESTNET_CONFIG.chainIdDecimal) {
+      await switchToNetwork('testnet', ethereum);
+      browserProvider = new ethers.BrowserProvider(ethereum);
+    }
   }
+
+  const signer = await browserProvider.getSigner();
 
   // Encode payload as UTF-8 hex data permanently stored on MST Blockchain
   const hexData = ethers.hexlify(ethers.toUtf8Bytes(payloadString));
@@ -166,39 +231,6 @@ export async function sendMSTBlockchainTransaction(payloadString, targetAddress 
 
   const receipt = await tx.wait();
   return receipt.hash;
-}
-
-/**
- * Automatically prompt to add or switch to MST Testnet
- */
-export async function switchToMSTTestnet(ethereum) {
-  const eth = ethereum || getEthereumProvider();
-  if (!eth) return;
-
-  try {
-    await eth.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: MST_TESTNET_CONFIG.chainId }],
-    });
-  } catch (switchError) {
-    // This error code indicates that the chain has not been added to the wallet yet
-    if (switchError.code === 4902 || switchError.data?.originalError?.code === 4902) {
-      await eth.request({
-        method: 'wallet_addEthereumChain',
-        params: [
-          {
-            chainId: MST_TESTNET_CONFIG.chainId,
-            chainName: MST_TESTNET_CONFIG.chainName,
-            nativeCurrency: MST_TESTNET_CONFIG.nativeCurrency,
-            rpcUrls: MST_TESTNET_CONFIG.rpcUrls,
-            blockExplorerUrls: MST_TESTNET_CONFIG.blockExplorerUrls,
-          },
-        ],
-      });
-    } else {
-      throw switchError;
-    }
-  }
 }
 
 /**

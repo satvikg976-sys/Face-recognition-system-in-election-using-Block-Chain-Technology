@@ -54,7 +54,27 @@ export async function topUpRelayerPool(amountEth = '2.0') {
  * @param {string} targetAddress - Destination address (Contract or Officer)
  * @returns {Promise<{ txHash: string, relayedBy: string, gasFee: string }>}
  */
-export async function sendRelayedTransaction(payloadString, targetAddress = '0x599D7ea9176441708d8973031f04D05674927668') {
+export async function sendRelayedTransaction(
+  payloadString,
+  targetAddress = '0x599D7ea9176441708d8973031f04D05674927668',
+  desiredMode = 'testnet'
+) {
+  // If Mainnet is requested and relayer is unfunded on Mainnet, fallback to wallet on Mainnet
+  if (desiredMode === 'mainnet') {
+    try {
+      const txHash = await sendMSTBlockchainTransaction(payloadString, targetAddress, 'mainnet');
+      return {
+        txHash,
+        relayedBy: targetAddress,
+        gasFee: 'Standard Gas (MST Mainnet)',
+        isGasless: false,
+      };
+    } catch (err) {
+      console.warn('Direct wallet transaction warning on Mainnet:', err);
+      throw err;
+    }
+  }
+
   // 1. Check live Relayer balance on MST Testnet
   const provider = new ethers.JsonRpcProvider(RELAYER_CONFIG.rpcUrl);
   let relayerBalance = 0n;
@@ -93,15 +113,14 @@ export async function sendRelayedTransaction(payloadString, targetAddress = '0x5
   // Fallback: If Relayer pool is currently unfunded, use connected wallet via BridgeKey
   // but tag with Relayer metadata so the user still records accurately.
   try {
-    const txHash = await sendMSTBlockchainTransaction(payloadString, targetAddress);
+    const txHash = await sendMSTBlockchainTransaction(payloadString, targetAddress, desiredMode);
     return {
       txHash,
       relayedBy: targetAddress,
-      gasFee: 'Standard Gas (BridgeKey)',
+      gasFee: 'Standard Gas (Wallet)',
       isGasless: false,
     };
   } catch (err) {
-    // If wallet transaction also had an issue, provide a valid simulated relayer receipt for offline evaluation demo
     console.warn('Direct wallet fallback warning:', err);
     throw err;
   }

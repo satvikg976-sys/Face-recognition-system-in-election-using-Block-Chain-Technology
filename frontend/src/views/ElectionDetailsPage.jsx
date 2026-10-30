@@ -264,14 +264,14 @@ export default function ElectionDetailsPage({
         const hashBuf = await crypto.subtle.digest('SHA-256', enc);
         const hashHex = Array.from(new Uint8Array(hashBuf)).map((b) => b.toString(16).padStart(2, '0')).join('');
         txHash = '0x' + hashHex;
-      } else if (useRelayer || mode.id === 'testnet') {
+      } else if (useRelayer) {
         // Execute via Gas Free Payment Service
-        const relResult = await sendRelayedTransaction(payload, DEFAULT_OFFICER_WALLET);
+        const relResult = await sendRelayedTransaction(payload, DEFAULT_OFFICER_WALLET, mode.id);
         txHash = relResult.txHash;
         setRelayerReceipt(relResult);
       } else {
         // Prompt wallet transaction confirmation dialog
-        txHash = await sendMSTBlockchainTransaction(payload, DEFAULT_OFFICER_WALLET);
+        txHash = await sendMSTBlockchainTransaction(payload, DEFAULT_OFFICER_WALLET, mode.id);
       }
 
       setChainTxHash(txHash);
@@ -511,7 +511,7 @@ export default function ElectionDetailsPage({
                     </p>
                     {voter.txHash && (
                       <a
-                        href={`https://testnet.mstscan.com/tx/${voter.txHash}`}
+                        href={voter.network === 'mainnet' || getActiveWalletMode().id === 'mainnet' ? `https://mstscan.com/tx/${voter.txHash}` : `https://testnet.mstscan.com/tx/${voter.txHash}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[10px] text-blue-600 hover:text-blue-800 hover:underline font-mono mt-1 inline-flex items-center gap-1"
@@ -741,11 +741,11 @@ export default function ElectionDetailsPage({
                   </div>
                   <p className="text-[11px] text-slate-600 font-mono break-all">Tx Hash: {chainTxHash}</p>
                   <p className="text-[10px] text-slate-500">
-                    Sponsor Pool: <span className="font-bold text-indigo-700">{RELAYER_CONFIG.sponsorName}</span> • Chain ID: 91562037
+                    Network: <strong className="text-indigo-700">{getActiveWalletMode().label}</strong> • Chain ID: {getActiveWalletMode().chainId || 'N/A'}
                   </p>
                   <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
                     <a
-                      href={`https://testnet.mstscan.com/tx/${chainTxHash}`}
+                      href={getActiveWalletMode().id === 'mainnet' ? `https://mstscan.com/tx/${chainTxHash}` : `https://testnet.mstscan.com/tx/${chainTxHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3.5 py-1.5 bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-xl font-bold text-xs shadow-xs"

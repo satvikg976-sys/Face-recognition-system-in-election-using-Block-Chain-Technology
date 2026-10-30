@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Globe, Zap, Check, ChevronDown, ExternalLink } from 'lucide-react';
 import { WALLET_MODES } from '../constants';
+import { switchToNetwork, getEthereumProvider } from '../utils/web3';
 
 export function getActiveWalletMode() {
   if (typeof window === 'undefined') return WALLET_MODES[0];
@@ -25,7 +26,28 @@ export default function WalletModeSelector({ className = '' }) {
       setActiveMode(getActiveWalletMode());
     };
     window.addEventListener('wallet_mode_changed', handleModeChange);
-    return () => window.removeEventListener('wallet_mode_changed', handleModeChange);
+
+    // Sync with wallet's active chain if BridgeKey changes network
+    const ethereum = getEthereumProvider();
+    const handleChainChanged = (chainIdHex) => {
+      const hexLower = String(chainIdHex).toLowerCase();
+      if (hexLower === '0x1226' || parseInt(hexLower, 16) === 4646) {
+        setActiveWalletMode('mainnet');
+      } else if (hexLower === '0x5752035' || hexLower === '0x5752945' || parseInt(hexLower, 16) === 91562037) {
+        setActiveWalletMode('testnet');
+      }
+    };
+
+    if (ethereum?.on) {
+      ethereum.on('chainChanged', handleChainChanged);
+    }
+
+    return () => {
+      window.removeEventListener('wallet_mode_changed', handleModeChange);
+      if (ethereum?.removeListener) {
+        ethereum.removeListener('chainChanged', handleChainChanged);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -38,10 +60,18 @@ export default function WalletModeSelector({ className = '' }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSelect = (modeId) => {
+  const handleSelect = async (modeId) => {
     setActiveWalletMode(modeId);
     setActiveMode(WALLET_MODES.find((m) => m.id === modeId) || WALLET_MODES[0]);
     setIsOpen(false);
+
+    if (modeId === 'mainnet' || modeId === 'testnet') {
+      try {
+        await switchToNetwork(modeId);
+      } catch (err) {
+        console.warn('Network prompt warning:', err);
+      }
+    }
   };
 
   return (

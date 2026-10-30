@@ -175,13 +175,13 @@ export default function AddVoterPage({ election, onVoterAdded, onCancel }) {
         const hashBuf = await crypto.subtle.digest('SHA-256', enc);
         const hashHex = Array.from(new Uint8Array(hashBuf)).map((b) => b.toString(16).padStart(2, '0')).join('');
         txHash = '0x' + hashHex;
-      } else if (useRelayer || mode.id === 'testnet') {
+      } else if (useRelayer) {
         setStatusText('⚡ Submitting via Gas Free Payment (0 Gas Fee)...');
-        const relResult = await sendRelayedTransaction(payload, DEFAULT_OFFICER_WALLET);
+        const relResult = await sendRelayedTransaction(payload, DEFAULT_OFFICER_WALLET, mode.id);
         txHash = relResult.txHash;
       } else {
-        setStatusText('Prompting Wallet to confirm transaction...');
-        txHash = await sendMSTBlockchainTransaction(payload, DEFAULT_OFFICER_WALLET);
+        setStatusText(`Prompting Wallet (${mode.shortLabel}) to confirm transaction...`);
+        txHash = await sendMSTBlockchainTransaction(payload, DEFAULT_OFFICER_WALLET, mode.id);
       }
 
       setStatusText(`✓ Confirmed on MST Blockchain! Tx: ${txHash.substring(0, 14)}...`);
@@ -195,6 +195,7 @@ export default function AddVoterPage({ election, onVoterAdded, onCancel }) {
         faceFeatures: enrollmentBiometrics.features,
         embeddingHex: enrollmentBiometrics.hexPreview,
         txHash,
+        network: mode.id,
       };
 
       addVoterToElection(election.id, newVoter);

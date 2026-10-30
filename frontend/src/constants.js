@@ -1,5 +1,5 @@
 export const MST_TESTNET_CONFIG = {
-  chainId: '0x5752945', // 91562037 in hex
+  chainId: '0x5752035', // 91562037 in hex
   chainIdDecimal: 91562037,
   chainName: 'MST Testnet',
   nativeCurrency: {
@@ -32,9 +32,11 @@ export const WALLET_MODES = [
     currency: 'tMSTC',
     balance: '60.00 tMSTC',
     chainId: 91562037,
+    chainIdHex: '0x5752035',
     address: '0x599D7ea9176441708d8973031f04D05674927668',
     shortAddress: '0x599D...7668',
     explorerUrl: 'https://testnet.mstscan.com/address/0x599D7ea9176441708d8973031f04D05674927668',
+    txExplorerBase: 'https://testnet.mstscan.com/tx',
     badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
     dotColor: 'bg-emerald-500',
     description: 'Active MST Testnet with funded 60.00 tMSTC officer wallet.',
@@ -44,14 +46,16 @@ export const WALLET_MODES = [
     label: 'MST Mainnet',
     shortLabel: 'Mainnet',
     currency: 'MSTC',
-    balance: '15.00 MSTC',
+    balance: '10.00 MSTC',
     chainId: 4646,
+    chainIdHex: '0x1226',
     address: '0x599D7ea9176441708d8973031f04D05674927668',
     shortAddress: '0x599D...7668',
     explorerUrl: 'https://mstscan.com/address/0x599D7ea9176441708d8973031f04D05674927668',
+    txExplorerBase: 'https://mstscan.com/tx',
     badgeClass: 'bg-purple-100 text-purple-800 border-purple-200',
     dotColor: 'bg-purple-500',
-    description: 'Live MST Mainnet production blockchain environment.',
+    description: 'Live MST Mainnet production blockchain environment (10.00 MSTC).',
   },
   {
     id: 'no_wallet',
@@ -63,6 +67,7 @@ export const WALLET_MODES = [
     address: 'Decentralized Relayer',
     shortAddress: 'No Wallet Req.',
     explorerUrl: null,
+    txExplorerBase: null,
     badgeClass: 'bg-amber-100 text-amber-800 border-amber-200',
     dotColor: 'bg-amber-500',
     description: 'Instant verification without requiring any browser wallet extension.',
